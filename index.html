@@ -2080,7 +2080,7 @@ $('#syncBtn').onclick=syncNow;
     const {open,could}=exposure(),mine=new Set([...Object.keys(open),...Object.keys(could)]),now=Date.now();
     const imp=NS.impact==='High'?['High']:['High','Medium'];
     const up=NS.news.filter(e=>e.t>now-30*60000&&e.t<now+8*864e5&&imp.includes(e.impact)&&(!NS.mine||mine.has(e.currency)));
-    $('#newsMeta').textContent=NS.news.length?`Calendar updated ${new Date(Math.max(...NS.news.map(e=>Date.parse(e.fetched_at||e.time)||0))||NS.loaded).toLocaleString([], {weekday:'short',hour:'2-digit',minute:'2-digit'})}. Times in your device's time.`:'No events saved yet. The calendar is fetched every hour; press Refresh news to fetch now.';
+    $('#newsMeta').textContent=NS.news.length?`Calendar updated ${new Date(Math.max(...NS.news.map(e=>Date.parse(e.fetched_at||e.time)||0))||NS.loaded).toLocaleString([], {weekday:'short',hour:'2-digit',minute:'2-digit'})}. Times in your device's time.`:'No events saved yet. The calendar is fetched on Sundays and Wednesdays; press Refresh news to fetch now.';
     let h='',day='';
     for(const e of up){
       const d=new Date(e.t).toLocaleDateString([], {weekday:'long',day:'numeric',month:'short'});
@@ -2176,7 +2176,7 @@ $('#syncBtn').onclick=syncNow;
     if(t.id==='newsMine'){NS.mine=t.checked;draw();return}
     if(t.id==='newsRefresh'){t.disabled=true;t.textContent='Fetching…';
       const a=await sb().rpc('desk_news_fetch');if(a.error){t.textContent=a.error.message;t.disabled=false;return}
-      await new Promise(r=>setTimeout(r,5000));await sb().rpc('desk_news_fetch');await load();t.textContent='Refresh news';t.disabled=false}
+      await new Promise(r=>setTimeout(r,5000));await sb().rpc('desk_news_fetch',{ask:false});await load();t.textContent='Refresh news';t.disabled=false}
   });
   const _render=render;render=function(){_render();try{draw();drawAlerts()}catch(e){console.error('news',e)}};
   // first load as soon as the trades are in, then keep the countdowns fresh
