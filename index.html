@@ -216,6 +216,33 @@ details.settings>summary{list-style:none} details.settings>summary::-webkit-deta
 .acard .mini div{display:flex;flex-direction:column;background:var(--sunk);border-radius:8px;padding:5px 8px;min-width:0}
 .acard .mini span:first-child{font-size:10px;color:var(--muted);letter-spacing:.05em;text-transform:uppercase}
 .acard .mini span:last-child{font:600 13px var(--f-body);white-space:nowrap}
+.newsban{display:block;width:100%;text-align:left;margin:12px 0 0;padding:10px 14px;border-radius:12px;border:1px solid color-mix(in srgb,var(--warn) 50%,var(--line));background:color-mix(in srgb,var(--warn) 12%,var(--surface));color:var(--ink);font:14px var(--f-body);cursor:pointer}
+.newsban[hidden]{display:none}
+.nday{font:600 12px var(--f-body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:10px 0 4px;border-bottom:1px solid var(--line)}
+.nrow{display:grid;grid-template-columns:86px 70px minmax(0,1fr);gap:12px;padding:10px 0;border-bottom:1px solid var(--line);align-items:start}
+.nrow.soon{background:color-mix(in srgb,var(--warn) 9%,transparent)}
+.nrow.past{opacity:.6}
+.nrow .nt{display:flex;flex-direction:column;font-size:14px}
+.nrow .nc{display:flex;align-items:center;gap:6px;font-size:13px}
+.nrow .nb{display:flex;flex-direction:column;gap:4px;min-width:0}
+.nrow .nh{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center}
+.nlab{font:600 10px var(--f-body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:2px}
+.nlab.neg{color:var(--neg)}
+.nexp{font-size:13px;display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center}
+.nposg{display:inline-flex;gap:4px;align-items:center;white-space:nowrap}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{font:600 13px var(--f-body);padding:7px 12px;border:0;background:var(--surface);color:var(--muted);cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--ink);color:var(--surface)}
+.aform{display:flex;flex-direction:column;gap:8px}
+.arow{display:flex;justify-content:space-between;align-items:center;gap:12px;background:var(--sunk);border-radius:10px;padding:9px 12px;font-size:14px}
+.arow input[type=number]{width:84px;font:14px var(--f-data);color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 8px}
+.arow input[type=checkbox],.achip input{width:18px;height:18px;accent-color:var(--cool)}
+.achips{display:flex;flex-wrap:wrap;gap:8px}
+.achip{display:flex;gap:6px;align-items:center;border:1px solid var(--line);border-radius:99px;padding:5px 10px;font-size:13px}
+.arow2{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px}
+.arow2:last-child{border-bottom:0}
+.arow2 .k{font:600 10px var(--f-body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+@media (max-width:600px){.nrow{grid-template-columns:64px minmax(0,1fr)}.nrow .nc{grid-column:2}.nrow .nb{grid-column:1/-1}}
 .eacard .chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .eacard .eanet{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 10px;font-size:13px}
 .eacard .eanet .badge{margin-left:auto}
@@ -450,6 +477,7 @@ code{font:12px var(--f-data);background:var(--sunk);padding:1px 5px;border-radiu
 <div class="wrap" style="margin-top:22px">
 <div id="err" class="err" hidden></div>
 <div class="ticker" id="ticker" role="region" aria-label="Live ticker" hidden></div>
+<button type="button" class="newsban" id="newsBan" hidden></button>
 
 <section class="hero" data-tab="overview" aria-label="Where you stand">
   <div class="hero-l">
@@ -566,6 +594,30 @@ code{font:12px var(--f-data);background:var(--sunk);padding:1px 5px;border-radiu
   <div class="g2">
     <section class="panel"><header><h3>Losing streaks</h3><p>How often you lost 1, 2, 3 or more trades in a row</p></header><div class="chart sm"><canvas id="cStreak"></canvas></div><div class="explain" id="xStreak"></div></section>
     <section class="panel"><header><h3>Do your EAs move together?</h3><p>Daily P/L correlation. Red means they lose on the same days.</p></header><div class="scroll"><table class="heat" id="corr"></table></div></section>
+  </div>
+</section>
+
+<section class="sec" data-tab="news" aria-labelledby="hNews">
+  <div class="sec-h"><div><span class="kicker">News</span><h2 id="hNews">What is coming, and what it touches</h2></div><p>Economic releases for the currencies in your open trades and the pairs your EAs trade, with the accounts and EAs each one could hit.</p></div>
+  <div class="panel" style="flex-direction:row;flex-wrap:wrap;align-items:center;gap:10px">
+    <div class="seg" role="group" aria-label="Impact"><button type="button" data-imp="High" aria-pressed="true">High impact</button><button type="button" data-imp="Medium" aria-pressed="false">High + medium</button></div>
+    <label class="tag" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="newsMine" checked> Only currencies I hold or trade</label>
+    <button type="button" class="btn" id="newsRefresh" style="margin-left:auto">Refresh news</button>
+    <span class="tag" id="newsMeta" style="flex-basis:100%"></span>
+  </div>
+  <section class="panel"><header><h3>Coming up this week</h3><p>Open now: trades that are live on that currency. Could trade it: EAs that traded that currency in the last 30 days.</p></header><div id="newsList"><p class="muted">Loading news…</p></div></section>
+  <section class="panel"><header><h3>How your EAs did around past news</h3><p>Trades that were open when a high-impact release on one of their currencies came out, against all their other trades</p></header><div id="newsPast"></div></section>
+</section>
+
+<section class="sec" data-tab="alerts" aria-labelledby="hAlerts">
+  <div class="sec-h"><div><span class="kicker">Alerts</span><h2 id="hAlerts">Alerts to your Telegram</h2></div><p>Your database checks every 5 minutes and sends anything new to your Telegram bot. An alert is not sent again until it has cleared.</p></div>
+  <div class="g2">
+    <section class="panel"><header><h3>Settings</h3><p>Saved in your database, used by every check</p></header><div id="alertForm" class="aform"><p class="muted">Loading…</p></div></section>
+    <div style="display:flex;flex-direction:column;gap:18px;min-width:0">
+      <section class="panel"><header><h3>Telegram</h3><p>Bot token and chat id are kept in Supabase Vault (step in the guide)</p></header><div id="tgStatus"></div></section>
+      <section class="panel"><header><h3>True right now</h3><p>What the check sees at this moment</p></header><div id="alertNow"></div></section>
+      <section class="panel"><header><h3>Recent alerts</h3><p>Last 25, newest first</p></header><div id="alertLog"></div></section>
+    </div>
   </div>
 </section>
 
@@ -1417,7 +1469,7 @@ function renderSymTiles({T,ccy}){
 }
 
 /* ---------- tabs ---------- */
-const TABS=[['overview','Overview'],['live','Open trades'],['accounts','Accounts'],['eas','EAs'],['timing','Timing'],['risk','Risk'],['where','Markets'],['costs','Costs & sync']];
+const TABS=[['overview','Overview'],['live','Open trades'],['accounts','Accounts'],['eas','EAs'],['timing','Timing'],['risk','Risk'],['news','News'],['alerts','Alerts'],['where','Markets'],['costs','Costs & sync']];
 const ic=d=>`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
 const TABICON={
   overview:ic('<path d="M3 12l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/>'),
@@ -1426,6 +1478,8 @@ const TABICON={
   eas:ic('<rect x="6" y="7" width="12" height="11" rx="3"/><path d="M12 3v4"/><circle cx="10" cy="12" r="1.2"/><circle cx="14" cy="12" r="1.2"/><path d="M10 15.5h4"/><path d="M3 12h3M18 12h3"/>'),
   timing:ic('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'),
   risk:ic('<path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6z"/><path d="M12 8v5"/><circle cx="12" cy="16" r=".6" fill="currentColor"/>'),
+  news:ic('<path d="M5 5h11v14H6a1 1 0 0 1-1-1z"/><path d="M16 9h3v9a1 1 0 0 1-2 0V9"/><path d="M8 9h5M8 12h5M8 15h3"/>'),
+  alerts:ic('<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20a2 2 0 0 0 4 0"/>'),
   where:ic('<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 3 2.5 15 0 18M12 3c-2.5 3-2.5 15 0 18"/>'),
   costs:ic('<path d="M4 7h16v12H4z"/><path d="M16 13h.01"/><path d="M4 7l12-4 2 4"/>')};
 function showTab(k,scroll){
@@ -1859,7 +1913,7 @@ new MutationObserver(render).observe(document.documentElement,{attributes:true,a
 demo();fillAccounts();render();
 
 /* ---------- live sync: PortfolioPush EA -> Supabase, read with the viewer's Supabase connector ---------- */
-const SB='Supabase',PROJECT='fx-portfolio',PAGE=1000,BUILD='v16';
+const SB='Supabase',PROJECT='fx-portfolio',PAGE=1000,BUILD='v17';
 let mcp=null,syncing=false,projectId=null;
 const setSync=t=>{$('#sync').textContent=t};
 function rowsOf(r){
@@ -1974,6 +2028,161 @@ $('#syncBtn').onclick=syncNow;
   $('#syncBtn').hidden=false;
   await syncNow();
   setInterval(()=>{if(S.live&&!document.hidden)syncNow()},5*60*1000);
+})();
+
+/* ---------- News and Telegram alerts (needs 4-news-alerts/setup-news-alerts.sql in Supabase) ---------- */
+(()=>{
+  const NS={news:[],set:{},ok:null,why:'',loaded:0,impact:'High',mine:true,now:null,log:null,tg:null};
+  const DEF={on:true,open_loss_pct:10,day_loss_pct:5,silent_min:240,idle_x:3,idle_days:3,news_min:30,news_medium:false,stopouts:true,highs:true,server_utc_offset:2,accounts:[]};
+  const set=()=>Object.assign({},DEF,NS.set||{});
+  const sb=()=>window.deskAuth;
+  // EURUSD.m -> [EUR,USD]; indices -> home currency (same rules as desk_currencies in the database)
+  const curOf=sym=>{const v=String(sym||'').toUpperCase().replace(/[^A-Z0-9].*$/,'');
+    if(/^(US30|DJ30|US500|SPX|SPX500|US100|NAS|NAS100|USTEC|US2000|USOIL|WTI|XTIUSD|UKOIL|BRENT)/.test(v))return['USD'];
+    if(/^(GER|DE30|DE40|DAX|EU50|STOXX|FRA40|ESP35|IT40)/.test(v))return['EUR'];
+    if(/^(UK100|FTSE)/.test(v))return['GBP'];if(/^(JP225|JPN225|NIKKEI)/.test(v))return['JPY'];
+    if(/^(AUS200|ASX)/.test(v))return['AUD'];if(/^(HK50|HSI)/.test(v))return['HKD'];
+    return /^[A-Z]{6}/.test(v)?[v.slice(0,3),v.slice(3,6)]:[]};
+  const posPL=()=>{const m={};for(const l of (window.CACHE&&CACHE.pos)||(typeof CACHE!=='undefined'&&CACHE&&CACHE.pos)||[]){const v=l.split(',');m[v[0]+'|'+v[1]]=(+v[10]||0)+(+v[11]||0)}return m};
+  const ago=ms=>{const m=Math.round(Math.abs(ms)/60000),t=m<60?m+' min':m<1440?Math.floor(m/60)+' h'+(m%60?' '+m%60+' min':''):Math.round(m/1440)+' days';return ms>=0?'in '+t:t+' ago'};
+  const impChip=i=>`<span class="chip ${i==='High'?'fail':i==='Medium'?'warn':''}">${esc(i||'')}</span>`;
+  const curFlag=c=>FLAG[c]?flag(c,18):`<span class="tag">${esc(c)}</span>`;
+
+  async function load(){
+    if(!sb()||!S.live) return;
+    const since=new Date(Date.now()-60*864e5).toISOString(),until=new Date(Date.now()+9*864e5).toISOString();
+    const [n,st]=await Promise.all([sb().from('news').select('id,time,currency,title,impact,forecast,previous,fetched_at').gte('time',since).lte('time',until).order('time').limit(1000),
+      sb().from('desk_settings').select('s').eq('id',1).maybeSingle()]);
+    if(n.error){NS.ok=false;NS.why=n.error.message;draw();return}
+    NS.ok=true;NS.news=(n.data||[]).map(e=>({...e,t:Date.parse(e.time)}));NS.set=(st.data&&st.data.s)||{};NS.loaded=Date.now();
+    draw();
+  }
+  async function loadAlerts(){
+    if(!sb()||NS.ok===false) return;
+    const [now,log,tg]=await Promise.all([sb().rpc('desk_check_alerts',{do_send:false}),sb().from('alert_log').select('*').order('at',{ascending:false}).limit(25),sb().rpc('desk_telegram_status')]);
+    NS.now=now.error?{err:now.error.message}:now.data;NS.log=log.error?[]:log.data;NS.tg=tg.error?null:tg.data;drawAlerts();
+  }
+
+  // what each currency touches: open trades now, and EAs that traded it in the last 30 days
+  function exposure(){
+    const pl=posPL(),open={},could={};const sel=$('#acct')?$('#acct').value:'ALL';
+    for(const p of S.pos||[]){if(!inSel(p.acct,sel))continue;for(const c of curOf(p.sym))(open[c]=open[c]||[]).push({...p,pl:pl[p.acct+'|'+p.ticket]})}
+    const from=(S.srvNow||Date.now())-30*864e5;
+    for(const t of S.trades){if(t.ct<from||!inSel(t.acct,sel))continue;for(const c of curOf(t.sym)){const k=t.fam+'|'+t.acct;((could[c]=could[c]||{})[k]=could[c][k]||{fam:t.fam,acct:t.acct,syms:new Set()}).syms.add(t.sym)}}
+    return {open,could};
+  }
+
+  function draw(){
+    const box=$('#newsList');if(!box) return;
+    if(NS.ok===false){const msg=/does not exist|schema cache|news/i.test(NS.why)?'News is not set up in your database yet. Run <code>4-news-alerts/setup-news-alerts.sql</code> in Supabase (see the guide).':esc(NS.why);
+      box.innerHTML=`<div class="note">${msg}</div>`;$('#newsPast').innerHTML='';banner();return}
+    if(NS.ok===null){box.innerHTML='<p class="muted">Loading news…</p>';return}
+    const {open,could}=exposure(),mine=new Set([...Object.keys(open),...Object.keys(could)]),now=Date.now();
+    const imp=NS.impact==='High'?['High']:['High','Medium'];
+    const up=NS.news.filter(e=>e.t>now-30*60000&&e.t<now+8*864e5&&imp.includes(e.impact)&&(!NS.mine||mine.has(e.currency)));
+    $('#newsMeta').textContent=NS.news.length?`Calendar updated ${new Date(Math.max(...NS.news.map(e=>Date.parse(e.fetched_at||e.time)||0))||NS.loaded).toLocaleString([], {weekday:'short',hour:'2-digit',minute:'2-digit'})}. Times in your device's time.`:'No events saved yet. The calendar is fetched every hour; press Refresh news to fetch now.';
+    let h='',day='';
+    for(const e of up){
+      const d=new Date(e.t).toLocaleDateString([], {weekday:'long',day:'numeric',month:'short'});
+      if(d!==day){h+=`<div class="nday">${esc(d)}</div>`;day=d}
+      const o=open[e.currency]||[],cw=Object.values(could[e.currency]||{}).filter(x=>!o.some(p=>p.acct===x.acct&&p.fam===x.fam));
+      // one line per account, EA, pair and direction: how many trades, total lots and their open P/L together
+      const grp={};for(const p of o){const k=[p.acct,p.fam,p.sym,p.side].join('|');const g=grp[k]=grp[k]||{acct:p.acct,fam:p.fam,sym:p.sym,side:p.side,n:0,lots:0,pl:0,hasPl:false};g.n++;g.lots+=p.lots;if(p.pl!=null){g.pl+=p.pl;g.hasPl=true}}
+      const byAcct={};for(const g of Object.values(grp))(byAcct[g.acct]=byAcct[g.acct]||[]).push(g);
+      const exp=Object.entries(byAcct).map(([a,gs])=>`<div class="nexp"><b>${esc(nm(a))}</b> ${gs.map(g=>`<span class="nposg">${pairBadge(g.sym,14)} ${esc(g.sym)} ${esc(g.side)} · ${g.n} trade${g.n>1?'s':''} · ${fmt(g.lots)} lots <span class="tag">${esc(g.fam||'')}</span>${g.hasPl?` <span class="num ${cls(g.pl)}">${money(g.pl,2)}</span>`:''}</span>`).join('')}</div>`).join('');
+      const soon=e.t-now<60*60000&&e.t>now;
+      h+=`<div class="nrow${soon?' soon':''}${e.t<now?' past':''}"><div class="nt"><b>${new Date(e.t).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</b><span class="tag">${ago(e.t-now)}</span></div>
+        <div class="nc">${curFlag(e.currency)}<b>${esc(e.currency)}</b></div>
+        <div class="nb"><div class="nh"><b>${esc(e.title)}</b>${impChip(e.impact)}${e.forecast||e.previous?`<span class="tag">${e.forecast?'forecast '+esc(e.forecast):''}${e.forecast&&e.previous?' · ':''}${e.previous?'previous '+esc(e.previous):''}</span>`:''}</div>
+        ${o.length?`<div class="nlab neg">Open now</div>${exp}`:''}
+        ${cw.length?`<div class="nlab">Could trade it</div><div class="nexp">${cw.map(x=>`${avatar(x.fam,16)}<b>${esc(x.fam)}</b> <span class="tag">${esc(nm(x.acct))} · ${[...x.syms].map(esc).join(', ')}</span>`).join(' · ')}</div>`:''}
+        ${!o.length&&!cw.length?'<div class="tag">None of your accounts trade this currency.</div>':''}</div></div>`;
+    }
+    box.innerHTML=h||`<p class="muted">No ${NS.impact==='High'?'high-impact':'high or medium-impact'} news in the next week${NS.mine?' for the currencies you trade':''}.</p>`;
+    drawPast();banner();
+  }
+
+  // trades that were open when a high-impact release on one of their currencies came out, per EA
+  function drawPast(){
+    const el=$('#newsPast');if(!el) return;
+    const off=(+set().server_utc_offset||0)*3600e3,now=Date.now();
+    const ev=NS.news.filter(e=>e.impact==='High'&&e.t<now).map(e=>({c:e.currency,bt:e.t+off}));
+    if(!ev.length){el.innerHTML='<p class="muted">This fills in as news history builds up: the calendar keeps every week from the day you set it up.</p>';return}
+    const first=Math.min(...ev.map(e=>e.bt)),by={};const sel=$('#acct')?$('#acct').value:'ALL';
+    for(const t of S.trades){if(t.ot<first||!inSel(t.acct,sel))continue;const cs=curOf(t.sym);
+      const hit=ev.some(e=>cs.includes(e.c)&&e.bt>=t.ot&&e.bt<=t.ct);const g=by[t.fam]=by[t.fam]||{n:0,net:0,on:0,onNet:0};
+      g.n++;g.net+=t.net;if(hit){g.on++;g.onNet+=t.net}}
+    const rows=Object.entries(by).filter(([,g])=>g.on).sort((x,y)=>x[1].onNet-y[1].onNet);
+    el.innerHTML=rows.length?`<div class="scroll"><table><thead><tr><th>EA</th><th>Trades open through news</th><th>Their net</th><th>Per trade through news</th><th>Per trade otherwise</th><th></th></tr></thead><tbody>${rows.map(([f,g])=>{
+      const a=g.onNet/g.on,b=g.n>g.on?(g.net-g.onNet)/(g.n-g.on):null,worse=b!=null&&a<b;
+      return `<tr><td>${avatar(f,18)} ${esc(f)}</td><td class="num">${g.on} of ${g.n}</td><td class="num ${cls(g.onNet)}">${money(g.onNet,2)}</td><td class="num ${cls(a)}">${money(a,2)}</td><td class="num ${cls(b)}">${b==null?'–':money(b,2)}</td><td>${b==null?'':worse?'<span class="chip fail">worse around news</span>':'<span class="chip pass">holds up</span>'}</td></tr>`}).join('')}</tbody></table></div>
+      <p class="explain">Since ${new Date(first-off).toLocaleDateString()}. Server time is taken as UTC${set().server_utc_offset>=0?'+':''}${set().server_utc_offset} (change it in the Alerts tab).</p>`
+      :'<p class="muted">None of your trades in this period were open during a high-impact release on their currencies.</p>';
+  }
+
+  // banner on every tab when news on a currency you hold is close
+  function banner(){
+    const b=$('#newsBan');if(!b) return;
+    const st=set(),now=Date.now(),win=Math.max(+st.news_min||30,60)*60000,imp=st.news_medium?['High','Medium']:['High'],{open}=exposure();
+    const hot=NS.news.filter(e=>e.t>now&&e.t-now<=win&&imp.includes(e.impact)&&open[e.currency]);
+    if(!hot.length){b.hidden=true;return}
+    const e=hot[0],o=open[e.currency],accts=[...new Set(o.map(p=>nm(p.acct)))];
+    b.hidden=false;b.innerHTML=`📰 <b>${esc(e.currency)} ${esc(e.title)}</b> ${ago(e.t-now)} · ${o.length} open trade${o.length>1?'s':''} on ${accts.map(esc).join(', ')}${hot.length>1?` · and ${hot.length-1} more`:''} <span class="tag">Open the News tab ›</span>`;
+  }
+
+  function drawAlerts(){
+    const st=set(),f=$('#alertForm');if(!f) return;
+    if(NS.ok===false){f.innerHTML=`<div class="note">Alerts are not set up in your database yet. Run <code>4-news-alerts/setup-news-alerts.sql</code> in Supabase (see the guide).</div>`;return}
+    const accts=[...new Set(S.trades.map(t=>t.acct))];
+    const num=(k,label,ic,step)=>`<label class="arow"><span>${ic} ${label}</span><input type="number" data-k="${k}" value="${esc(st[k])}" step="${step||1}"></label>`;
+    const box=(k,label,ic)=>`<label class="arow"><span>${ic} ${label}</span><input type="checkbox" data-k="${k}"${st[k]?' checked':''}></label>`;
+    if(!f.dataset.built||f.dataset.built!==JSON.stringify([st,accts])){
+      f.dataset.built=JSON.stringify([st,accts]);
+      f.innerHTML=box('on','<b>Alerts on</b>','')+num('open_loss_pct','Open loss over this % of balance','🔻',.5)+num('day_loss_pct','Loss today over this % of balance','📉',.5)
+        +num('silent_min','No new data for this many minutes','📴',10)+num('idle_x','Account quiet this many times its usual gap','💤',.5)+num('idle_days','…and at least this many days','💤',.5)
+        +num('news_min','Warn this many minutes before news on a currency you hold or trade','📰',5)+box('news_medium','Include medium-impact news','📰')
+        +box('stopouts','Broker stop-outs','🛑')+box('highs','New all-time highs','🏆')+num('server_utc_offset','Broker server time is UTC +','🕒',.5)
+        +`<div class="k" style="margin-top:6px">Accounts to watch <span class="tag">(none ticked = all)</span></div><div class="achips">${accts.map(a=>`<label class="achip"><input type="checkbox" data-acct="${esc(a)}"${(st.accounts||[]).map(String).includes(a)?' checked':''}> ${esc(nm(a))}</label>`).join('')}</div>
+        <div class="row" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button type="button" class="btn primary" id="alertSave">Save</button><span class="tag" id="alertMsg"></span></div>`;
+      $('#alertSave').onclick=save;
+    }
+    const tg=NS.tg;
+    $('#tgStatus').innerHTML=tg?`<div class="achips"><span class="chip ${tg.token?'pass':'fail'}">${tg.token?'✓':'✗'} Bot token</span><span class="chip ${tg.chat?'pass':'fail'}">${tg.chat?'✓':'✗'} Chat id</span></div>
+      ${tg.last_reply?`<p class="tag">Telegram's last answer: ${esc(/"ok":true/.test(tg.last_reply)?'message delivered':(tg.last_reply.match(/"description":"([^"]+)"/)||[,tg.last_reply])[1])}</p>`:''}
+      <button type="button" class="btn" id="tgTest"${tg.token&&tg.chat?'':' disabled'}>Send a test message</button>`:'<p class="muted">Checking Telegram…</p>';
+    if($('#tgTest'))$('#tgTest').onclick=async ev=>{ev.target.disabled=true;ev.target.textContent='Sending…';const r=await sb().rpc('desk_telegram_test');ev.target.textContent=r.error?r.error.message:'Sent. Check Telegram.';setTimeout(loadAlerts,4000)};
+    const now=NS.now;
+    $('#alertNow').innerHTML=!now?'<p class="muted">Checking…</p>':now.err?`<p class="neg">${esc(now.err)}</p>`:now.length?now.map(a=>`<div class="arow2"><div><span class="k">${esc(a.kind)}</span><div>${esc(a.message).replace(/\n/g,'<br>')}</div></div><span class="chip ${a.sent?'pass':''}">${a.sent?'Sent':'Next check'}</span></div>`).join(''):'<p class="muted">Nothing to alert right now.</p>';
+    $('#alertLog').innerHTML=NS.log&&NS.log.length?NS.log.map(a=>`<div class="arow2"><div><span class="k">${esc(a.kind)} · ${new Date(a.at).toLocaleString([], {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</span><div>${esc(a.message).replace(/\n/g,'<br>')}</div>${a.note?`<div class="tag neg">${esc(a.note)}</div>`:''}</div><span class="chip ${a.sent?'pass':'fail'}">${a.sent?'Sent':'Not sent'}</span></div>`).join(''):'<p class="muted">No alerts sent yet.</p>';
+  }
+
+  async function save(){
+    const f=$('#alertForm'),s={...set()};
+    f.querySelectorAll('[data-k]').forEach(i=>{s[i.dataset.k]=i.type==='checkbox'?i.checked:+i.value});
+    s.accounts=[...f.querySelectorAll('[data-acct]')].filter(i=>i.checked).map(i=>i.dataset.acct);
+    s.names=Object.assign({},NAMES);
+    $('#alertMsg').textContent='Saving…';
+    const r=await sb().from('desk_settings').update({s,updated_at:new Date().toISOString()}).eq('id',1).select('s');
+    if(r.error||!r.data||!r.data.length){$('#alertMsg').textContent='Could not save: '+(r.error?r.error.message:'no permission');return}
+    NS.set=r.data[0].s;$('#alertMsg').textContent='Saved. The next check uses these settings.';draw();loadAlerts();
+  }
+
+  // controls
+  document.addEventListener('click',async ev=>{
+    const t=ev.target.closest('[data-imp],#newsMine,#newsRefresh,#newsBan');if(!t) return;
+    if(t.id==='newsBan'){showTab('news',true);return}
+    if(t.dataset.imp){NS.impact=t.dataset.imp;document.querySelectorAll('[data-imp]').forEach(b=>b.setAttribute('aria-pressed',b===t));draw();return}
+    if(t.id==='newsMine'){NS.mine=t.checked;draw();return}
+    if(t.id==='newsRefresh'){t.disabled=true;t.textContent='Fetching…';
+      const a=await sb().rpc('desk_news_fetch');if(a.error){t.textContent=a.error.message;t.disabled=false;return}
+      await new Promise(r=>setTimeout(r,5000));await sb().rpc('desk_news_fetch');await load();t.textContent='Refresh news';t.disabled=false}
+  });
+  const _render=render;render=function(){_render();try{draw();drawAlerts()}catch(e){console.error('news',e)}};
+  // first load as soon as the trades are in, then keep the countdowns fresh
+  const first=setInterval(()=>{if(S.live&&sb()){clearInterval(first);load().then(loadAlerts)}},1500);
+  setInterval(()=>{if(NS.ok)try{draw()}catch(e){}},30000);
+  setInterval(()=>{if(S.live&&!document.hidden){load();loadAlerts()}},5*60*1000);
+  window.addEventListener('hashchange',()=>{if(/^#(news|alerts)$/.test(location.hash)){load();loadAlerts()}});
 })();
 </script>
 
