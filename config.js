@@ -9,5 +9,11 @@ window.DESK_CONFIG = {
   // A nickname containing "demo" marks that account as a demo account.
   accountNames: {},
   // Optional names for EAs by magic number, e.g. { "1001": "TrendRider" }. Otherwise the EA name comes from the trade comment.
-  magicNames: {}
+  magicNames: {},
+  // Optional: name EAs that only show up as a number, by account and symbol,
+  // e.g. [{ account: "12345678", symbol: "EURUSD", name: "EurShore" }]. Leave out account or symbol to match any.
+  eaRules: [
+    { account: "1700140853", symbol: "EURUSD", name: "EurShore" },
+    { account: "1700140853", symbol: "AUDCAD", name: "GK" }
+  ]
 };

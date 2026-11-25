@@ -633,13 +633,24 @@ function slipOf(t){if(t.ex!=='sl'||!t.sl||!t.op||!t.cp||t.cp===t.op)return 0;con
   return k>0&&Math.abs(px)<t.op*.05?Math.round(px*k*100)/100:0}
 // Magic numbers the user named by hand win over comment parsing
 const MAGIC_NAMES=Object.assign({},window.DESK_CONFIG&&window.DESK_CONFIG.magicNames);
+// config.js eaRules: an EA whose name came out as only a number gets a name by account and symbol.
+const EA_RULES=((window.DESK_CONFIG&&window.DESK_CONFIG.eaRules)||[]).map(r=>({a:String(r.account||'').trim(),s:normSym(String(r.symbol||'').trim()).toUpperCase(),n:String(r.name||'').trim()})).filter(r=>r.n);
+const NUMERIC_EA=/^(Magic\s+)?\d+$/;
+const EA_LEARN={};
+function ruleName(acct,sym,name,magic,comment){
+  if(!EA_RULES.length||!NUMERIC_EA.test(String(name||'')))return name;
+  const s=normSym(String(sym||'')).toUpperCase(),r=EA_RULES.find(r=>(!r.a||r.a===String(acct))&&(!r.s||r.s===s));
+  if(!r)return name;
+  if(s)EA_LEARN[acct+'|'+magic+'|'+comment]=r.n;
+  return r.n;
+}
 // One EA per magic number (whatever symbols it trades), named by its most common comment family; families then merge across magics and accounts.
 const FAMMAP={};
 function assignFamilies(){
   const votes={};
   for(const t of S.trades){if(t.magic==='0'||!t.famRaw)continue;const k=t.acct+'|'+t.magic;(votes[k]=votes[k]||{})[t.famRaw]=(votes[k][t.famRaw]||0)+1}
   const best=FAMMAP;for(const k in votes) best[k]=Object.entries(votes[k]).sort((x,y)=>y[1]-x[1])[0][0];
-  for(const t of S.trades) t.fam=MAGIC_NAMES[t.magic]||(t.magic!=='0'?best[t.acct+'|'+t.magic]:t.famRaw)||(t.magic==='0'?'Manual':'Magic '+t.magic);
+  for(const t of S.trades) t.fam=ruleName(t.acct,t.sym,MAGIC_NAMES[t.magic]||(t.magic!=='0'?best[t.acct+'|'+t.magic]:t.famRaw)||(t.magic==='0'?'Manual':'Magic '+t.magic),t.magic,t.comment);
 }
 function parseTime(s){const m=String(s||'').match(/(\d{4})[.\-\/](\d{2})[.\-\/](\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?/);return m?Date.UTC(+m[1],m[2]-1,+m[3],+m[4],+m[5],+(m[6]||0)):NaN}
 // Strip what brokers append to comments so one strategy keeps one name.
@@ -1425,7 +1436,15 @@ function showTab(k,scroll){
 
 
 /* ---------- Open trades: live positions, drawdown now / today / all time, grid layers ---------- */
-const famFor=(acct,magic,comment)=>MAGIC_NAMES[magic]||(magic!=='0'&&FAMMAP[acct+'|'+magic])||famOf(comment)||(magic==='0'?'Manual':'Magic '+magic);
+const famFor=(acct,magic,comment,sym)=>{
+  const b=MAGIC_NAMES[magic]||(magic!=='0'&&FAMMAP[acct+'|'+magic])||famOf(comment)||(magic==='0'?'Manual':'Magic '+magic);
+  if(!EA_RULES.length||!NUMERIC_EA.test(b))return b;
+  if(sym!==undefined)return ruleName(acct,sym,b,magic,comment);
+  // groups without a symbol (equity snapshots): use the open trade with the same account, magic and comment
+  const learned=EA_LEARN[acct+'|'+magic+'|'+comment];if(learned)return learned;
+  const p=(S.pos||[]).find(p=>p.acct===acct&&p.magic===magic&&p.comment===comment);
+  return ruleName(acct,p?p.sym:'',b,magic,comment);
+};
 // Most trades open at the same time, from closed-trade history (open and close times), per account+EA.
 // Also flags martingale when a later layer in a basket is >= 1.5x the first lot size.
 function layerStats(T){
@@ -1896,7 +1915,7 @@ function show(c,note){
   S.srvNow=Math.max(0,...S.now.map(r=>r.t||0))||Date.now();
   const num=x=>x===''||x==null?null:+x;
   S.dd=(c.dd||[]).map(l=>{const v=l.split(',');return {acct:v[0],magic:v[1],comment:v[2],bal:+v[3],flNow:num(v[4]),flToday:num(v[5]),flAll:num(v[6]),nToday:num(v[7]),nAll:num(v[8]),pToday:num(v[9]),pAll:num(v[10])}});
-  S.pos=(c.pos||[]).map(l=>{const v=l.split(',');return {acct:v[0],ticket:v[1],sym:normSym(v[2]),side:v[3],lots:+v[4],ot:parseTime(v[5]),op:+v[6],px:+v[7],sl:+v[8],tp:+v[9],fl:null,magic:v[13],comment:v[14],age:+v[15],fam:famFor(v[0],v[13],v[14])}});
+  S.pos=(c.pos||[]).map(l=>{const v=l.split(',');return {acct:v[0],ticket:v[1],sym:normSym(v[2]),side:v[3],lots:+v[4],ot:parseTime(v[5]),op:+v[6],px:+v[7],sl:+v[8],tp:+v[9],fl:null,magic:v[13],comment:v[14],age:+v[15],fam:famFor(v[0],v[13],v[14],v[2])}});
   fillAccounts();render();$('#syncBtn').hidden=false;
   const lastClose=c.tr.reduce((m,l)=>{const v=l.split(',')[9]||'';return v>m?v:m},'');
   setSync(`${note}: ${S.trades.length.toLocaleString()} closed trades, last close ${lastClose} server time (${BUILD}).`);
