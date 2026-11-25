@@ -1099,7 +1099,7 @@ function renderBoard({EAs,base,E,a}){
   const medal=i=>['🥇','🥈','🥉'][i]||i+1;
   let h=`<div class="brow head"><span>#</span><span>EA</span><span>Net profit</span><span>PF</span><span>Win rate</span><span>Health</span><span>Recent form</span></div>`;
   list.forEach((e,i)=>{
-    const w=Math.abs(e.M.net)/mx*50,pos=e.M.net>=0;
+    const w=Math.abs(e.M.net)/mx*30,pos=e.M.net>=0; // longest bar fills 30% of the column, leaving room for its amount
     const bar=`<div class="div-bar"><b style="${pos?'left:50%':'right:50%'};width:${w}%;background:var(${pos?'--pos':'--neg'})"></b><span class="${cls(e.M.net)}" style="${pos?`left:calc(50% + ${w}% + 4px)`:`right:calc(50% + ${w}% + 4px)`}">${money(e.M.net)}</span></div>`;
     const acc=e.accts.length>2?e.accts.length+' accounts':e.accts.map(nm).join(', ');
     h+=`<div class="brow" data-i="${i}" tabindex="0" role="button" aria-expanded="false"><span class="rank">${medal(i)}</span>
