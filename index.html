@@ -2044,7 +2044,7 @@ $('#syncBtn').onclick=syncNow;
     if(/^(AUS200|ASX)/.test(v))return['AUD'];if(/^(HK50|HSI)/.test(v))return['HKD'];
     return /^[A-Z]{6}/.test(v)?[v.slice(0,3),v.slice(3,6)]:[]};
   const posPL=()=>{const m={};for(const l of (window.CACHE&&CACHE.pos)||(typeof CACHE!=='undefined'&&CACHE&&CACHE.pos)||[]){const v=l.split(',');m[v[0]+'|'+v[1]]=(+v[10]||0)+(+v[11]||0)}return m};
-  const ago=ms=>{const m=Math.round(Math.abs(ms)/60000),t=m<60?m+' min':m<1440?Math.floor(m/60)+' h'+(m%60?' '+m%60+' min':''):Math.round(m/1440)+' days';return ms>=0?'in '+t:t+' ago'};
+  const ago=ms=>{const m=Math.round(Math.abs(ms)/60000),t=m<60?m+' min':m<1440?Math.floor(m/60)+' h'+(m%60?' '+m%60+' min':''):(Math.round(m/1440)===1?'1 day':Math.round(m/1440)+' days');return ms>=0?'in '+t:t+' ago'};
   const impChip=i=>`<span class="chip ${i==='High'?'fail':i==='Medium'?'warn':''}">${esc(i||'')}</span>`;
   const curFlag=c=>FLAG[c]?flag(c,18):`<span class="tag">${esc(c)}</span>`;
 
@@ -2132,7 +2132,7 @@ $('#syncBtn').onclick=syncNow;
 
   function drawAlerts(){
     const st=set(),f=$('#alertForm');if(!f) return;
-    if(NS.ok===false){f.innerHTML=`<div class="note">Alerts are not set up in your database yet. Run <code>4-news-alerts/setup-news-alerts.sql</code> in Supabase (see the guide).</div>`;return}
+    if(NS.ok===false){delete f.dataset.built;f.innerHTML=`<div class="note">Alerts are not set up in your database yet. Run <code>4-news-alerts/setup-news-alerts.sql</code> in Supabase (see the guide).</div>`;return}
     const accts=[...new Set(S.trades.map(t=>t.acct))];
     const num=(k,label,ic,step)=>`<label class="arow"><span>${ic} ${label}</span><input type="number" data-k="${k}" value="${esc(st[k])}" step="${step||1}"></label>`;
     const box=(k,label,ic)=>`<label class="arow"><span>${ic} ${label}</span><input type="checkbox" data-k="${k}"${st[k]?' checked':''}></label>`;
