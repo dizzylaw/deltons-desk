@@ -1,7 +1,7 @@
 // Delton's Desk settings. Edit the two lines marked PASTE, then save (on GitHub: "Commit changes").
 window.DESK_CONFIG = {
   // Supabase > Project Settings > Data API (or Connect): the Project URL, like https://abcdefghijklmnop.supabase.co
-  supabaseUrl: "Phttps://pypgysikbzwabeknwjaa.supabase.co",
+  supabaseUrl: "https://pypgysikbzwabeknwjaa.supabase.co",
   // Supabase > Project Settings > API Keys: the Publishable key (starts with sb_publishable_). Never the secret key.
   supabaseKey: "sb_publishable_pWbK87OkUEsLbJWEub10xA_QmOVANLh",
 
