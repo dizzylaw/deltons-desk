@@ -1095,15 +1095,17 @@ function renderNums({P,MC,base,c}){
 
 function renderBoard({EAs,base,E,a}){
   const mx=Math.max(...EAs.map(e=>Math.abs(e.M.net)),1);
-  // Zero line sits at the left edge when every EA is in profit, at the right when all lose, and in between only as far as the losses need.
-  // Each side that has bars keeps 72px for its amount.
-  const mxP=Math.max(0,...EAs.map(e=>e.M.net)),mxN=Math.max(0,...EAs.map(e=>-e.M.net)),tot=(mxP+mxN)||1;
-  const rl=mxN>0?72:0,rr=mxP>0||!mxN?72:0,span=`(100% - ${rl+rr}px)`,org=`calc(${rl}px + ${span} * ${(mxN/tot).toFixed(4)})`;
+  // Fixed zero line at 35% of the column: losses always have room on the left, profits on the right.
+  // One scale for both sides, chosen so the biggest loss and the biggest profit both fit with 72px left for the amount.
+  const O=35,mxP=Math.max(0,...EAs.map(e=>e.M.net)),mxN=Math.max(0,...EAs.map(e=>-e.M.net));
+  const org=`${O}%`,far=`${100-O}%`;
+  const wOf=v=>{const p=[];if(mxP>0)p.push(`calc((${100-O}% - 72px) * ${(v/mxP).toFixed(4)})`);if(mxN>0)p.push(`calc((${O}% - 72px) * ${(v/mxN).toFixed(4)})`);
+    return p.length>1?`max(0px,min(${p.join(',')}))`:p.length?`max(0px,${p[0]})`:'0px'};
   const list=UI.boardAll?EAs:EAs.slice(0,12);
   const medal=i=>['🥇','🥈','🥉'][i]||i+1;
-  let h=`<div class="brow head"><span>#</span><span>EA</span><span>Net profit</span><span>PF</span><span>Win rate</span><span>Health</span><span>Recent form</span></div>`;
+  let h=`<div class="brow head"><span>#</span><span>EA</span><span style="display:flex"><span style="width:${O}%;text-align:right;padding-right:8px">◂ Loss</span><span style="padding-left:8px">Net profit ▸</span></span><span>PF</span><span>Win rate</span><span>Health</span><span>Recent form</span></div>`;
   list.forEach((e,i)=>{
-    const pos=e.M.net>=0,w=`calc(${span} * ${(Math.abs(e.M.net)/tot).toFixed(4)})`,far=`calc(100% - ${org})`;
+    const pos=e.M.net>=0,w=wOf(Math.abs(e.M.net));
     const bar=`<div class="div-bar" style="--o:${org}"><b style="${pos?`left:${org}`:`right:${far}`};width:${w};background:var(${pos?'--pos':'--neg'})"></b><span class="${cls(e.M.net)}" style="${pos?`left:calc(${org} + ${w} + 4px)`:`right:calc(${far} + ${w} + 4px)`}">${money(e.M.net)}</span></div>`;
     const acc=e.accts.length>2?e.accts.length+' accounts':e.accts.map(nm).join(', ');
     h+=`<div class="brow" data-i="${i}" tabindex="0" role="button" aria-expanded="false"><span class="rank">${medal(i)}</span>
