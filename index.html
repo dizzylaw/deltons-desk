@@ -216,6 +216,14 @@ details.settings>summary{list-style:none} details.settings>summary::-webkit-deta
 .acard .mini div{display:flex;flex-direction:column;background:var(--sunk);border-radius:8px;padding:5px 8px;min-width:0}
 .acard .mini span:first-child{font-size:10px;color:var(--muted);letter-spacing:.05em;text-transform:uppercase}
 .acard .mini span:last-child{font:600 13px var(--f-body);white-space:nowrap}
+.eacard .chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.eacard .eanet{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 10px;font-size:13px}
+.eacard .eanet .badge{margin-left:auto}
+.eacard .mini{grid-template-columns:repeat(4,1fr)}
+.eacard .tag .pairb{vertical-align:middle;margin-left:2px}
+.eacard .subrows{padding:8px 0 0;border:0;border-top:1px solid var(--line);background:none}
+.eacard .srow{grid-template-columns:minmax(0,1fr) auto auto;gap:6px 12px}
+.eacard .srow .hbar{display:none}
 .tag{font:500 11px var(--f-data);color:var(--muted)}
 svg.spark{width:100%;height:54px;display:block}
 .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--pos);box-shadow:0 0 0 0 color-mix(in srgb,var(--pos) 60%,transparent);animation:pulse 2s infinite;flex:none}
@@ -494,7 +502,7 @@ code{font:12px var(--f-data);background:var(--sunk);padding:1px 5px;border-radiu
 </section>
 
 <section class="sec" data-tab="eas" aria-labelledby="hEA">
-  <div class="sec-h"><div><span class="kicker">Leaderboard</span><h2 id="hEA">Your EAs, best to worst</h2></div><p>Bars grow right for profit and left for loss. Tap an EA to see each symbol it trades.</p></div>
+  <div class="sec-h"><div><span class="kicker">Leaderboard</span><h2 id="hEA">Your EAs, best to worst</h2></div><p>One card per EA, across every account it runs on. Tap a card to see each symbol it trades.</p></div>
   <div class="panel"><div class="board" id="board"></div>
     <button type="button" class="more" id="boardMore" hidden>Show all EAs</button>
     <details class="fold"><summary>Full statistics table</summary><div class="scroll"><table id="eaTable"></table></div></details>
@@ -1093,35 +1101,34 @@ function renderNums({P,MC,base,c}){
     <div class="v">${v}</div>${m!=null?`<div class="hbar"><b style="width:${(Math.max(0,Math.min(1,m))*100).toFixed(0)}%;background:${dot3(ok,warn)}"></b></div>`:''}<p>${txt}</p></div>`).join('');
 }
 
-function renderBoard({EAs,base,E,a}){
-  const mx=Math.max(...EAs.map(e=>Math.abs(e.M.net)),1);
-  // Fixed zero line at 35% of the column: losses always have room on the left, profits on the right.
-  // One scale for both sides, chosen so the biggest loss and the biggest profit both fit with 72px left for the amount.
-  const O=35,mxP=Math.max(0,...EAs.map(e=>e.M.net)),mxN=Math.max(0,...EAs.map(e=>-e.M.net));
-  const org=`${O}%`,far=`${100-O}%`;
-  const wOf=v=>{const p=[];if(mxP>0)p.push(`calc((${100-O}% - 72px) * ${(v/mxP).toFixed(4)})`);if(mxN>0)p.push(`calc((${O}% - 72px) * ${(v/mxN).toFixed(4)})`);
-    return p.length>1?`max(0px,min(${p.join(',')}))`:p.length?`max(0px,${p[0]})`:'0px'};
-  const list=UI.boardAll?EAs:EAs.slice(0,12);
-  const medal=i=>['🥇','🥈','🥉'][i]||i+1;
-  let h=`<div class="brow head"><span>#</span><span>EA</span><span style="display:flex"><span style="width:${O}%;text-align:right;padding-right:8px">◂ Loss</span><span style="padding-left:8px">Net profit ▸</span></span><span>PF</span><span>Win rate</span><span>Health</span><span>Recent form</span></div>`;
-  list.forEach((e,i)=>{
-    const pos=e.M.net>=0,w=wOf(Math.abs(e.M.net));
-    const bar=`<div class="div-bar" style="--o:${org}"><b style="${pos?`left:${org}`:`right:${far}`};width:${w};background:var(${pos?'--pos':'--neg'})"></b><span class="${cls(e.M.net)}" style="${pos?`left:calc(${org} + ${w} + 4px)`:`right:calc(${far} + ${w} + 4px)`}">${money(e.M.net)}</span></div>`;
-    const acc=e.accts.length>2?e.accts.length+' accounts':e.accts.map(nm).join(', ');
-    h+=`<div class="brow" data-i="${i}" tabindex="0" role="button" aria-expanded="false"><span class="rank">${medal(i)}</span>
-      <span class="ea-name"><b>${avatar(e.name,22)}${esc(e.name)} ${vChip(e.V)}${e.so?` <span class="chip fail" title="Broker margin stop-outs">🛑 ${e.so} stop-out${e.so>1?'s':''}</span>`:''}</b><span class="tag">${esc(e.tag)} · ${esc(acc)} · ${e.M.n} trades</span>${miniSpark(cumOf(Object.values(e.syms).flat().sort((x,y)=>x.ct-y.ct)),110,22)}</span>
-      ${bar}<span class="num ${e.M.pf>=1?'pos':'neg'}">${fmt(e.M.pf)}</span>
-      <span class="wr"><span>${pct(e.M.wr,0)}</span><span class="hbar"><b style="width:${e.M.wr*100}%;background:var(--cool)"></b></span></span>
-      ${ring(e.score,'sm')}${e.form}</div><div class="subrows" data-p="${i}" hidden></div>`;
-  });
-  $('#board').innerHTML=h;
+function renderBoard({EAs,base,E,a,c}){
+  // One card per EA, across every account it runs on. Return and drawdown are measured against those accounts' own starting balances.
+  const list=UI.boardAll?EAs:EAs.slice(0,12),acctBase={};
+  const baseOf=x=>{if(!(x in acctBase)){const st=acctStats(x,c.cap);acctBase[x]=st?st.base:0}return acctBase[x]};
+  const card=(e,i)=>{
+    const ts=Object.values(e.syms).flat().sort((x,y)=>x.ct-y.ct),eb=e.accts.reduce((s,x)=>s+baseOf(x),0)||base;
+    const demo=e.accts.filter(isDemoAcct).length,type=!demo?['Real','info']:demo===e.accts.length?['Demo','']:['Real + demo','info'];
+    let kind='';const L=Object.values(layerStats(ts));const most=Math.max(0,...L.map(x=>x.all)),mart=Math.max(1,...L.map(x=>x.mart));
+    if(mart>=1.5&&most>=2)kind='<span class="chip fail">Martingale</span>';else if(most>=3)kind='<span class="chip warn">Grid</span>';
+    const syms=Object.entries(e.syms).sort((x,y)=>y[1].length-x[1].length).slice(0,3).map(([s])=>pairBadge(s,16)).join('');
+    const days=Math.max(1,Math.round((e.M.t1-e.M.t0)/DAY)),pos=e.M.net>=0;
+    return `<div class="acard eacard" data-i="${i}" tabindex="0" role="button" aria-expanded="false" style="animation-delay:${i*40}ms">
+      <div class="top"><span class="name"><b>${avatar(e.name,26)}${esc(e.name)}</b><span class="tag">${e.accts.length} account${e.accts.length>1?'s':''} · ${syms}</span></span>${ring(e.score)}</div>
+      <div class="chips">${vChip(e.V)}<span class="chip ${type[1]}">${type[0]}</span>${kind}${e.so?`<span class="chip fail" title="Broker margin stop-outs">🛑 ${e.so} stop-out${e.so>1?'s':''}</span>`:''}</div>
+      <div class="eanet"><span class="big2 ${cls(e.M.net)}">${pos?'+':''}${money(e.M.net)}</span><span class="${cls(e.M.net)}">${pos?'+':''}${pct(e.M.net/eb)}</span>${e.form}</div>
+      ${spark(cumOf(ts))}
+      <div class="mini"><div><span>PF</span><span>${fmt(e.M.pf)}</span></div><div><span>Max DD</span><span class="neg">${pct(e.M.maxDD/eb)}</span></div><div><span>Trades</span><span>${e.M.n}</span></div><div><span>Days</span><span>${days}</span></div></div>
+      <div class="subrows" hidden></div></div>`;
+  };
+  $('#board').innerHTML=`<div class="cards eacards">${list.map(card).join('')}</div>`;
   $('#boardMore').hidden=EAs.length<=12;$('#boardMore').textContent=UI.boardAll?'Show top 12':`Show all ${EAs.length} EAs`;
-  $('#board').querySelectorAll('.brow[data-i]').forEach(r=>{
-    const tog=()=>{const sub=$('#board').querySelector(`.subrows[data-p="${r.dataset.i}"]`),open=sub.hidden;sub.hidden=!open;r.setAttribute('aria-expanded',open);
+  $('#board').querySelectorAll('.eacard').forEach(r=>{
+    const tog=()=>{const sub=r.querySelector('.subrows'),open=sub.hidden;sub.hidden=!open;r.setAttribute('aria-expanded',open);
       if(open&&!sub.innerHTML){const e=list[+r.dataset.i];const rows=Object.entries(e.syms).map(([s,ts])=>[s,ts.reduce((x,t)=>x+t.net,0),ts.length]).sort((x,y)=>y[1]-x[1]);
         const m2=Math.max(...rows.map(x=>Math.abs(x[1])),1);
         sub.innerHTML=rows.map(([s,n,k])=>`<div class="srow"><span>${symCell(s)}</span><span class="hbar"><b style="width:${Math.abs(n)/m2*100}%;background:var(${n>=0?'--pos':'--neg'})"></b></span><span class="num ${cls(n)}">${money(n)}</span><span class="tag">${k} trades</span></div>`).join('')
-          +`<div class="srow"><span class="muted">No stop loss</span><span class="hbar"><b style="width:${e.nosl*100}%;background:var(--warn)"></b></span><span class="num">${pct(e.nosl,0)}</span><span></span></div>`}};
+          +`<div class="srow"><span class="muted">No stop loss</span><span class="hbar"><b style="width:${e.nosl*100}%;background:var(--warn)"></b></span><span class="num">${pct(e.nosl,0)}</span><span></span></div>`
+          +`<div class="srow"><span class="muted">Accounts</span><span class="tag" style="grid-column:span 2;text-align:right">${e.accts.map(x=>esc(nm(x))).join(', ')}</span></div>`}};
     r.onclick=tog;r.onkeydown=ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();tog()}};
   });
   /* full stats table */
