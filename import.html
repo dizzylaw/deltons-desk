@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Import history · Delton's Desk</title>
+<link rel="icon" type="image/png" href="icon-192.png">
+<style>
+:root{--bg:#eef2f6;--surface:#fff;--sunk:#e6ebf1;--ink:#13202c;--muted:#5a6b7b;--line:#d3dbe3;--accent:#b4761a;--accent-ink:#fff;--pos:#1f8a5c;--neg:#b23b3b;--r:12px;
+  --f-body:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;--f-mono:"JetBrains Mono",ui-monospace,Consolas,monospace}
+@media (prefers-color-scheme:dark){:root{--bg:#0b1118;--surface:#121a24;--sunk:#192331;--ink:#e4eaf1;--muted:#8d9cad;--line:#243142;--accent:#e7a943;--accent-ink:#14202c;--pos:#3dbd84;--neg:#ef6b6b;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 var(--f-body);padding:32px max(16px,env(safe-area-inset-left)) 64px}
+main{max-width:920px;margin:0 auto;display:grid;gap:20px}
+h1{font:700 30px/1.15 var(--f-body);margin:0}
+h2{font:600 18px/1.3 var(--f-body);margin:0}
+p{margin:0;max-width:70ch}
+.muted{color:var(--muted)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:20px;display:grid;gap:12px;min-width:0}
+ol{margin:0;padding-left:1.3em;display:grid;gap:6px}
+.drop{border:2px dashed var(--line);border-radius:var(--r);padding:28px;text-align:center;display:grid;gap:8px;cursor:pointer}
+.drop.over{border-color:var(--accent);background:var(--sunk)}
+.drop:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+button,.btn{font:600 14px var(--f-body);border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;padding:8px 14px;cursor:pointer}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+button:disabled{opacity:.5;cursor:default}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+input[type=text]{font:14px var(--f-mono);padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--sunk);color:var(--ink);width:12ch}
+.facts{display:flex;flex-wrap:wrap;gap:8px 20px;font-size:14px}
+.facts b{font-weight:600}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
+th,td{padding:6px 10px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+th{font-weight:600;color:var(--muted);background:var(--sunk);font-size:12px}
+td.n{text-align:right}
+tr:last-child td{border-bottom:0}
+.ok{color:var(--pos)}.bad{color:var(--neg)}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+code{font:13px var(--f-mono);background:var(--sunk);border-radius:5px;padding:1px 5px}
+</style>
+</head>
+<body>
+<main>
+  <header style="display:grid;gap:8px">
+    <a href="./" class="muted" style="font-size:14px">← Back to the Desk</a>
+    <h1>Import older trade history</h1>
+    <p class="muted">Myfxbook only hands over each account's last 50 closed trades. Add everything older here, once per account, from a report saved in MetaTrader. Trades the sync already has are skipped, so nothing is counted twice.</p>
+  </header>
+
+  <section class="card">
+    <h2>Save a report in MetaTrader</h2>
+    <p><b>MT4:</b> log in to the account (the investor password is enough). In the <b>Account History</b> tab, right-click › <b>All History</b>, then right-click › <b>Save as Detailed Report</b>.</p>
+    <p><b>MT5:</b> log in to the account. In <b>Toolbox › History</b>, right-click › <b>All History</b> (or a custom period from the start), then right-click › <b>Report › HTML</b>.</p>
+    <p class="muted">Reports have no magic numbers, so imported trades are grouped by EA from their trade comment, or by the names in <code>config.js</code>.</p>
+  </section>
+
+  <label class="drop card" id="drop">
+    <b>Drop report files here, or click to choose</b>
+    <span class="muted">.htm or .html, one per account. Nothing is sent until you press Upload.</span>
+    <input type="file" id="files" accept=".htm,.html" multiple hidden>
+  </label>
+
+  <div id="out" style="display:grid;gap:20px"></div>
+</main>
+
+<script src="config.js"></script>
+<script>
+"use strict";
+const C = window.DESK_CONFIG || {};
+const $ = (s, el = document) => el.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
+const ID_BASE = 4611686018427387904n; // ids from the Myfxbook sync start here; report tickets must be below
+
+// ---------- reading ----------
+async function readText(file) {
+  const b = new Uint8Array(await file.arrayBuffer());
+  if (b[0] === 0xFF && b[1] === 0xFE) return new TextDecoder("utf-16le").decode(b);   // MT5 reports
+  if (b[0] === 0xFE && b[1] === 0xFF) return new TextDecoder("utf-16be").decode(b);
+  const u = new TextDecoder("utf-8").decode(b);
+  return u.includes("�") ? new TextDecoder("windows-1252").decode(b) : u;
+}
+const num = (s) => { const t = String(s ?? "").replace(/[\s ]/g, "").replace(/,(?=\d{3}\b)/g, ""); return t === "" || !isFinite(+t) ? null : +t; };
+const mtime = (s) => { const m = /(\d{4})[.\-/](\d{2})[.\-/](\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?/.exec(String(s ?? "")); return m ? `${m[1]}-${m[2]}-${m[3]} ${m[4]}:${m[5]}:${m[6] ?? "00"}` : null; };
+const label = (s) => String(s ?? "").toLowerCase().replace(/[^a-z]/g, "");
+
+// Every row as a list of cells, with colspan expanded so columns line up with the header.
+function gridRows(doc) {
+  return [...doc.querySelectorAll("tr")].map((tr) => {
+    const cells = [];
+    for (const td of tr.cells) {
+      cells.push({ text: td.textContent.replace(/\s+/g, " ").trim(), title: td.getAttribute("title") || "" });
+      for (let i = 1; i < (td.colSpan || 1); i++) cells.push({ text: "", title: "" });
+    }
+    return cells;
+  });
+}
+
+// Column positions from a header row; repeated names (Time, Price) become open/close.
+function columns(cells) {
+  const col = {}, count = {};
+  cells.forEach((c, i) => {
+    const l = label(c.text);
+    if (!l) return;
+    count[l] = (count[l] || 0) + 1;
+    col[count[l] === 1 ? l : l + count[l]] ??= i;
+  });
+  return col;
+}
+
+function parseReport(html) {
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const text = doc.body ? doc.body.textContent : "";
+  const account = (/Account:\s*(\d+)/i.exec(text) || [])[1] || "";
+  const currency = (/Currency:\s*([A-Z]{3})/.exec(text) || /Account:\s*\d+\s*\(([A-Z]{3})\b/i.exec(text) || [])[1] || "";
+  const rows = gridRows(doc);
+  let section = "", col = null;
+  const mt4 = [], positions = [], deals = [];
+  for (const cells of rows) {
+    const filled = cells.filter((c) => c.text);
+    if (filled.length === 1 || (filled.length <= 2 && /:$/.test(filled[0]?.text || ""))) {
+      const s = label(filled[0].text);
+      if (/^(closedtransactions|opentrades|workingorders|summary|positions|orders|deals|openpositions|results|details)/.test(s)) { section = s; col = null; continue; }
+    }
+    const labels = cells.map((c) => label(c.text));
+    if ((labels.includes("ticket") || labels.includes("position") || labels.includes("deal")) && (labels.includes("symbol") || labels.includes("item")) && labels.includes("type")) {
+      col = columns(cells); continue;
+    }
+    if (!col) continue;
+    const get = (k) => (col[k] == null ? "" : (cells[col[k]] || {}).text || "");
+    if (section.startsWith("closedtransactions") || (!section && col.closetime != null)) {
+      const ticket = get("ticket"), type = get("type").toLowerCase();
+      if (!/^\d+$/.test(ticket)) continue;
+      if (type === "buy" || type === "sell") {
+        if (!mtime(get("closetime"))) continue;
+        mt4.push({ deal: ticket, type, symbol: get("item").toUpperCase(), volume: num(get("size")), open_time: mtime(get("opentime")),
+          open_price: num(get("price")), sl: num(get("sl")), tp: num(get("tp")), time: mtime(get("closetime")), price: num(get("price2")),
+          commission: num(get("commission")) ?? 0, fee: num(get("taxes")) ?? 0, swap: num(get("swap")) ?? 0, profit: num(get("profit")) ?? 0,
+          comment: (cells[col.ticket] || {}).title || "" });
+      } else if (/^(balance|credit)/.test(type)) {
+        const amount = num(get("profit")) ?? num([...cells].reverse().find((c) => num(c.text) != null)?.text);
+        mt4.push({ deal: ticket, type: "balance", symbol: "", volume: 0, time: mtime(get("opentime")), profit: amount ?? 0,
+          comment: cells.slice(3).map((c) => c.text).find((t) => t && num(t) == null) || type });
+      }
+    } else if (section.startsWith("positions")) {
+      const id = get("position"), type = get("type").toLowerCase();
+      if (!/^\d+$/.test(id) || !(type === "buy" || type === "sell") || !mtime(get("time2"))) continue;
+      positions.push({ deal: id, type, symbol: get("symbol").toUpperCase(), volume: num(get("volume").split("/")[0]),
+        open_time: mtime(get("time")), open_price: num(get("price")), sl: num(get("sl")), tp: num(get("tp")),
+        time: mtime(get("time2")), price: num(get("price2")), commission: num(get("commission")) ?? 0, fee: 0,
+        swap: num(get("swap")) ?? 0, profit: num(get("profit")) ?? 0, comment: "" });
+    } else if (section.startsWith("deals")) {
+      const id = get("deal");
+      if (!/^\d+$/.test(id)) continue;
+      deals.push({ id, time: mtime(get("time")), symbol: get("symbol").toUpperCase(), type: get("type").toLowerCase(),
+        dir: get("direction").toLowerCase(), price: num(get("price")), fee: num(get("fee")) ?? 0, profit: num(get("profit")) ?? 0,
+        comment: get("comment") });
+    }
+  }
+  let platform = "MT4", trades = mt4;
+  if (positions.length || deals.length) {
+    platform = "MT5";
+    // Positions carry no comment; take it from the deal that opened (or else closed) the position.
+    const key = (t, s, p) => `${t}|${s}|${p}`;
+    const ins = {}, outs = {};
+    for (const d of deals) (d.dir === "in" ? ins : outs)[key(d.time, d.symbol, d.price)] ??= d;
+    for (const p of positions) {
+      const i = ins[key(p.open_time, p.symbol, p.open_price)], o = outs[key(p.time, p.symbol, p.price)];
+      p.comment = i?.comment || o?.comment || "";
+      p.fee = (i?.fee || 0) + (o?.fee || 0);
+    }
+    const money = deals.filter((d) => /^(balance|credit|bonus|correction|charge)/.test(d.type))
+      .map((d) => ({ deal: d.id, type: "balance", symbol: "", volume: 0, time: d.time, profit: d.profit, comment: d.comment || d.type }));
+    trades = positions.concat(money);
+  }
+  return { account, currency, platform, trades: trades.filter((t) => t.time) };
+}
+
+function toRows(r, account) {
+  return r.trades.map((t) => ({
+    account, deal: t.deal, platform: r.platform, currency: r.currency, time: t.time, type: t.type,
+    entry: t.type === "balance" ? "" : "mt4", position: null, ord: null, symbol: t.symbol, volume: t.volume,
+    price: t.price ?? null, sl: t.sl ?? null, tp: t.tp ?? null, commission: t.commission ?? 0, fee: t.fee ?? 0,
+    swap: t.swap ?? 0, profit: t.profit ?? 0, magic: "0", comment: t.comment || "",
+    open_time: t.open_time ?? null, open_price: t.open_price ?? null,
+  })).filter((x) => BigInt(x.deal) < ID_BASE);
+}
+
+// ---------- sending ----------
+async function upload(rows) {
+  const url = String(C.supabaseUrl || "").replace(/\/$/, ""), key = String(C.supabaseKey || "");
+  if (!/^https:\/\//.test(url) || /PASTE/.test(url + key)) throw new Error("Fill in config.js first (step 3 of the guide).");
+  let added = 0;
+  for (let i = 0; i < rows.length; i += 500) {
+    const r = await fetch(`${url}/rest/v1/rpc/push_import`, { method: "POST", body: JSON.stringify({ rows: rows.slice(i, i + 500) }),
+      headers: { apikey: key, "Content-Type": "application/json" } });
+    if (!r.ok) throw new Error(`Upload failed: ${r.status} ${(await r.text()).slice(0, 200)}`);
+    added += Number(await r.json()) || 0;
+  }
+  return added;
+}
+
+// ---------- page ----------
+function show(file, r) {
+  const el = document.createElement("section");
+  el.className = "card";
+  const n = r.trades.filter((t) => t.type !== "balance").length, money = r.trades.length - n;
+  const times = r.trades.map((t) => t.time).sort();
+  const net = r.trades.filter((t) => t.type !== "balance").reduce((s, t) => s + t.profit + t.swap + t.commission + (t.fee || 0), 0);
+  el.innerHTML = `<h2>${esc(file.name)}</h2>` + (r.trades.length ? `
+    <div class="facts"><span><b>${r.platform}</b> report</span><span><b>${n}</b> closed trades</span><span><b>${money}</b> deposits/withdrawals</span>
+      <span>${esc(times[0]?.slice(0, 10))} to ${esc(times.at(-1)?.slice(0, 10))}</span><span>Net trading result <b>${net.toFixed(2)} ${esc(r.currency)}</b></span></div>
+    <div class="row"><label>Account number <input type="text" inputmode="numeric" value="${esc(r.account)}"></label>
+      <button class="primary">Upload</button><span class="msg muted"></span></div>
+    <div class="tbl"><table><thead><tr><th>Ticket</th><th>Closed</th><th>Type</th><th>Symbol</th><th class="n">Lots</th><th class="n">Profit</th><th>Comment</th></tr></thead><tbody>
+      ${r.trades.slice(-8).reverse().map((t) => `<tr><td>${esc(t.deal)}</td><td>${esc(t.time)}</td><td>${esc(t.type)}</td><td>${esc(t.symbol)}</td>
+        <td class="n">${t.volume ?? ""}</td><td class="n">${(t.profit ?? 0).toFixed(2)}</td><td>${esc(t.comment)}</td></tr>`).join("")}
+    </tbody></table></div><p class="muted">Showing the 8 most recent rows. Check the trade count and net result match MetaTrader before you upload.</p>`
+    : `<p class="bad">No trades found in this file. Is it a MetaTrader 4 Detailed Report or an MetaTrader 5 HTML report with All History?</p>`);
+  $("#out").prepend(el);
+  const btn = $("button", el);
+  if (!btn) return;
+  btn.onclick = async () => {
+    const acct = $("input", el).value.trim(), msg = $(".msg", el);
+    if (!/^\d+$/.test(acct)) { msg.className = "msg bad"; msg.textContent = "Enter the account number (digits only)."; return; }
+    btn.disabled = true; msg.className = "msg muted"; msg.textContent = "Uploading…";
+    try {
+      const rows = toRows(r, acct), added = await upload(rows);
+      msg.className = "msg ok";
+      msg.textContent = `Done: ${added} added. ${rows.length - added} skipped (already saved, or newer than what the sync already has).`;
+    } catch (e) { msg.className = "msg bad"; msg.textContent = e.message; btn.disabled = false; }
+  };
+}
+
+async function take(files) {
+  for (const f of files) {
+    try { show(f, parseReport(await readText(f))); }
+    catch (e) { const el = document.createElement("section"); el.className = "card"; el.innerHTML = `<h2>${esc(f.name)}</h2><p class="bad">${esc(e.message)}</p>`; $("#out").prepend(el); }
+  }
+}
+const drop = $("#drop");
+$("#files").onchange = (e) => take(e.target.files);
+drop.ondragover = (e) => { e.preventDefault(); drop.classList.add("over"); };
+drop.ondragleave = () => drop.classList.remove("over");
+drop.ondrop = (e) => { e.preventDefault(); drop.classList.remove("over"); take(e.dataTransfer.files); };
+window.DeskImport = { parseReport, toRows }; // for tests
+</script>
+</body>
+</html>
