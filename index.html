@@ -2053,7 +2053,7 @@ $('#syncBtn').onclick=syncNow;
     const since=new Date(Date.now()-60*864e5).toISOString(),until=new Date(Date.now()+9*864e5).toISOString();
     const [n,st]=await Promise.all([sb().from('news').select('id,time,currency,title,impact,forecast,previous,fetched_at').gte('time',since).lte('time',until).order('time').limit(1000),
       sb().from('desk_settings').select('s').eq('id',1).maybeSingle()]);
-    if(n.error){NS.ok=false;NS.why=n.error.message;draw();return}
+    if(n.error){NS.ok=false;NS.why=n.error.message;draw();drawAlerts();return}
     NS.ok=true;NS.news=(n.data||[]).map(e=>({...e,t:Date.parse(e.time)}));NS.set=(st.data&&st.data.s)||{};NS.loaded=Date.now();
     draw();
   }
