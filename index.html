@@ -2133,6 +2133,7 @@ $('#syncBtn').onclick=syncNow;
   function drawAlerts(){
     const st=set(),f=$('#alertForm');if(!f) return;
     if(NS.ok===false){delete f.dataset.built;f.innerHTML=`<div class="note">Alerts are not set up in your database yet. Run <code>4-news-alerts/setup-news-alerts.sql</code> in Supabase (see the guide).</div>`;return}
+    if(NS.ok!==true){delete f.dataset.built;f.innerHTML='<p class="muted">Loading your settings…</p>';return}
     const accts=[...new Set(S.trades.map(t=>t.acct))];
     const num=(k,label,ic,step)=>`<label class="arow"><span>${ic} ${label}</span><input type="number" data-k="${k}" value="${esc(st[k])}" step="${step||1}"></label>`;
     const box=(k,label,ic)=>`<label class="arow"><span>${ic} ${label}</span><input type="checkbox" data-k="${k}"${st[k]?' checked':''}></label>`;
