@@ -10,7 +10,7 @@ window.DESK_CONFIG = {
   accountNames: {},
   // Optional names for EAs by magic number, e.g. { "1001": "TrendRider" }. Otherwise the EA name comes from the trade comment.
   magicNames: {},
-  // Optional: name EAs that only show up as a number, by account and symbol,
+  // Optional: name EAs by account and symbol, whatever the trade comment says,
   // e.g. [{ account: "12345678", symbol: "EURUSD", name: "EurShore" }]. Leave out account or symbol to match any.
   eaRules: [
     { account: "1700140853", symbol: "EURUSD", name: "EurShore" },

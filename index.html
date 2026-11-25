@@ -633,12 +633,11 @@ function slipOf(t){if(t.ex!=='sl'||!t.sl||!t.op||!t.cp||t.cp===t.op)return 0;con
   return k>0&&Math.abs(px)<t.op*.05?Math.round(px*k*100)/100:0}
 // Magic numbers the user named by hand win over comment parsing
 const MAGIC_NAMES=Object.assign({},window.DESK_CONFIG&&window.DESK_CONFIG.magicNames);
-// config.js eaRules: an EA whose name came out as only a number gets a name by account and symbol.
+// config.js eaRules: name the EA by account and symbol, whatever its comment says (magicNames still win).
 const EA_RULES=((window.DESK_CONFIG&&window.DESK_CONFIG.eaRules)||[]).map(r=>({a:String(r.account||'').trim(),s:normSym(String(r.symbol||'').trim()).toUpperCase(),n:String(r.name||'').trim()})).filter(r=>r.n);
-const NUMERIC_EA=/^(Magic\s+)?\d+$/;
 const EA_LEARN={};
 function ruleName(acct,sym,name,magic,comment){
-  if(!EA_RULES.length||!NUMERIC_EA.test(String(name||'')))return name;
+  if(!EA_RULES.length||MAGIC_NAMES[magic])return name;
   const s=normSym(String(sym||'')).toUpperCase(),r=EA_RULES.find(r=>(!r.a||r.a===String(acct))&&(!r.s||r.s===s));
   if(!r)return name;
   if(s)EA_LEARN[acct+'|'+magic+'|'+comment]=r.n;
@@ -1438,7 +1437,7 @@ function showTab(k,scroll){
 /* ---------- Open trades: live positions, drawdown now / today / all time, grid layers ---------- */
 const famFor=(acct,magic,comment,sym)=>{
   const b=MAGIC_NAMES[magic]||(magic!=='0'&&FAMMAP[acct+'|'+magic])||famOf(comment)||(magic==='0'?'Manual':'Magic '+magic);
-  if(!EA_RULES.length||!NUMERIC_EA.test(b))return b;
+  if(!EA_RULES.length||MAGIC_NAMES[magic])return b;
   if(sym!==undefined)return ruleName(acct,sym,b,magic,comment);
   // groups without a symbol (equity snapshots): use the open trade with the same account, magic and comment
   const learned=EA_LEARN[acct+'|'+magic+'|'+comment];if(learned)return learned;
