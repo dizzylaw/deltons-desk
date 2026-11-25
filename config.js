@@ -1,9 +1,9 @@
 // Delton's Desk settings. Edit the two lines marked PASTE, then save (on GitHub: "Commit changes").
 window.DESK_CONFIG = {
   // Supabase > Project Settings > Data API (or Connect): the Project URL, like https://abcdefghijklmnop.supabase.co
-  supabaseUrl: "PASTE-YOUR-PROJECT-URL",
+  supabaseUrl: "Phttps://pypgysikbzwabeknwjaa.supabase.co",
   // Supabase > Project Settings > API Keys: the Publishable key (starts with sb_publishable_). Never the secret key.
-  supabaseKey: "PASTE-YOUR-PUBLISHABLE-KEY",
+  supabaseKey: "sb_publishable_pWbK87OkUEsLbJWEub10xA_QmOVANLh",
 
   // Optional nicknames shown instead of account numbers, e.g. { "12345678": "Main_Live", "87654321": "Gold_Demo" }.
   // A nickname containing "demo" marks that account as a demo account.
